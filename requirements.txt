@@ -1,0 +1,2 @@
+# Requirements will be added in Issue #2
+# This file is a placeholder for now
