@@ -66,36 +66,107 @@ Ce projet a été conçu pour démontrer :
 
 ### Prérequis
 
-- Python 3.9+
-- Docker & Docker Compose
-- Git
-- kubectl (pour Kubernetes)
-- minikube ou kind (pour déploiement local K8s)
+- **Python 3.9+** ([Télécharger](https://www.python.org/downloads/))
+- **Git** ([Télécharger](https://git-scm.com/downloads))
+- **Docker & Docker Compose** (optionnel, pour containerisation)
+- **kubectl** (optionnel, pour Kubernetes)
+- **minikube ou kind** (optionnel, pour déploiement local K8s)
 
-### Installation Locale
+### 🔧 Installation Automatique (Recommandé)
+
+#### Windows (PowerShell)
+
+```powershell
+# Cloner le repository
+git clone https://github.com/NourMoussi/devops-project-.git
+cd devops-project-
+
+# Exécuter le script de setup
+.\setup.ps1
+```
+
+**Note** : Si vous obtenez une erreur d'exécution de script, exécutez d'abord :
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+#### Linux/Mac (Bash)
 
 ```bash
 # Cloner le repository
 git clone https://github.com/NourMoussi/devops-project-.git
 cd devops-project-
 
-# Créer un environnement virtuel
+# Rendre le script exécutable
+chmod +x setup.sh
+
+# Exécuter le script de setup
+./setup.sh
+```
+
+### 📦 Installation Manuelle
+
+Si vous préférez installer manuellement :
+
+```bash
+# 1. Cloner le repository
+git clone https://github.com/NourMoussi/devops-project-.git
+cd devops-project-
+
+# 2. Créer un environnement virtuel
 python -m venv venv
 
-# Activer l'environnement virtuel
-# Windows
-venv\Scripts\activate
+# 3. Activer l'environnement virtuel
+# Windows (PowerShell)
+.\venv\Scripts\Activate.ps1
+# Windows (CMD)
+venv\Scripts\activate.bat
 # Linux/Mac
 source venv/bin/activate
 
-# Installer les dépendances
-pip install -r requirements.txt
+# 4. Mettre à jour pip
+python -m pip install --upgrade pip
 
-# Lancer l'application
+# 5. Installer les dépendances
+pip install -r requirements.txt
+```
+
+### ⚙️ Configuration
+
+```bash
+# Copier le fichier d'environnement exemple
+cp .env.example .env
+
+# Éditer .env selon vos besoins (optionnel pour développement local)
+```
+
+### 🚀 Lancer l'Application
+
+```bash
+# Activer l'environnement virtuel (si pas déjà fait)
+# Windows
+.\venv\Scripts\Activate.ps1
+# Linux/Mac
+source venv/bin/activate
+
+# Lancer l'application (sera disponible dans Issue #3)
 python app.py
 ```
 
 L'API sera accessible sur `http://localhost:5000`
+
+### ✅ Vérifier l'Installation
+
+```bash
+# Vérifier la version de Python
+python --version
+
+# Vérifier les packages installés
+pip list
+
+# Lancer les tests (quand disponibles)
+pytest tests/
+```
 
 ## 📚 Documentation
 

@@ -1,2 +1,67 @@
-# Requirements will be added in Issue #2
-# This file is a placeholder for now
+# ============================================
+# Task Manager API - Python Dependencies
+# ============================================
+# Project: DevOps Task Manager API
+# Python: 3.9+
+# Last Updated: 2026-01-13
+# ============================================
+
+# -------------------- Core Framework --------------------
+Flask==3.0.0
+Werkzeug==3.0.1
+
+# -------------------- Observability --------------------
+# Prometheus metrics
+prometheus-client==0.19.0
+
+# Structured logging
+python-json-logger==2.0.7
+
+# -------------------- CORS Support --------------------
+Flask-CORS==4.0.0
+
+# -------------------- Validation --------------------
+# Input validation
+marshmallow==3.20.1
+
+# -------------------- Development Tools --------------------
+# Code formatting
+black==23.12.1
+
+# Linting
+flake8==7.0.0
+pylint==3.0.3
+
+# -------------------- Testing --------------------
+pytest==7.4.3
+pytest-cov==4.1.0
+pytest-flask==1.3.0
+
+# -------------------- Security --------------------
+# SAST scanning
+bandit==1.7.6
+
+# -------------------- Utilities --------------------
+# Environment variables
+python-dotenv==1.0.0
+
+# Date/time utilities
+python-dateutil==2.8.2
+
+# UUID generation (built-in, but explicit for clarity)
+# uuid - standard library
+
+# -------------------- Production Server --------------------
+# WSGI server for production
+gunicorn==21.2.0
+
+# ============================================
+# Installation:
+#   pip install -r requirements.txt
+#
+# Development:
+#   pip install -r requirements.txt
+#
+# Production:
+#   pip install -r requirements.txt --no-dev
+# ============================================
