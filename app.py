@@ -1,11 +1,13 @@
 import logging
 import datetime
 import os
-from flask import Flask, jsonify, request
+import time
+from flask import Flask, jsonify, request, g
 from flask_cors import CORS
 from pythonjsonlogger import jsonlogger
 from dotenv import load_dotenv
 from marshmallow import ValidationError
+from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
 
 # Import du modèle et du gestionnaire de données
 from models.task import db_manager, TaskSchema
@@ -13,7 +15,7 @@ from models.task import db_manager, TaskSchema
 # Charger les variables d'environnement
 load_dotenv()
 
-# Configuration du Logging Structuré (JSON)
+# Configuration du Logging
 logHandler = logging.StreamHandler()
 formatter = jsonlogger.JsonFormatter(
     fmt='%(asctime)s %(levelname)s %(name)s %(message)s'
@@ -27,47 +29,98 @@ logger.setLevel(os.getenv('LOG_LEVEL', 'INFO'))
 app = Flask(__name__)
 CORS(app)
 
-# Métadonnées
 APP_VERSION = os.getenv('APP_VERSION', '1.0.0')
 
-# Initialisation des schémas de validation
+# Schémas Marshmallow
 task_schema = TaskSchema()
 tasks_schema = TaskSchema(many=True)
 
 # -------------------------------------------------------------------
-# Endpoints API
+# M É T R I Q U E S   P R O M E T H E U S
 # -------------------------------------------------------------------
+
+# 1. Compteur de requêtes : suit le nombre total de requêtes par méthode/endpoint/code
+HTTP_REQUESTS_TOTAL = Counter(
+    'http_requests_total',
+    'Total HTTP Requests',
+    ['method', 'endpoint', 'status']
+)
+
+# 2. Histogramme de latence : mesure la durée des requêtes
+HTTP_REQUEST_DURATION_SECONDS = Histogram(
+    'http_request_duration_seconds',
+    'HTTP Request Duration',
+    ['method', 'endpoint']
+)
+
+# 3. Jauge métier : nombre de tâches actives en mémoire
+APP_TASKS_TOTAL = Gauge(
+    'app_tasks_total',
+    'Total number of tasks in memory'
+)
+
+# Middleware pour mesurer la durée des requêtes
+@app.before_request
+def start_timer():
+    g.start_time = time.time()
+
+@app.after_request
+def record_metrics(response):
+    if request.endpoint == 'metrics':
+        return response
+        
+    duration = time.time() - g.start_time
+    endpoint = request.endpoint if request.endpoint else 'unknown'
+    
+    # Enregistrement des métriques
+    HTTP_REQUEST_DURATION_SECONDS.labels(
+        method=request.method,
+        endpoint=endpoint
+    ).observe(duration)
+    
+    HTTP_REQUESTS_TOTAL.labels(
+        method=request.method,
+        endpoint=endpoint,
+        status=response.status_code
+    ).inc()
+    
+    return response
+
+# -------------------------------------------------------------------
+# Endpoints
+# -------------------------------------------------------------------
+
+@app.route('/metrics')
+def metrics():
+    """Endpoint exposé pour le scraping Prometheus."""
+    # Mise à jour de la jauge métier juste avant le scraping
+    count = len(db_manager.get_all())
+    APP_TASKS_TOTAL.set(count)
+    
+    return generate_latest(), 200, {'Content-Type': CONTENT_TYPE_LATEST}
 
 @app.route('/health', methods=['GET'])
 def health_check():
     """Endpoint de Health Check."""
-    logger.info("Health check requested")
     return jsonify({
         'status': 'healthy',
         'timestamp': datetime.datetime.utcnow().isoformat() + 'Z',
-        'version': APP_VERSION,
-        'environment': os.getenv('FLASK_ENV', 'development')
+        'version': APP_VERSION
     }), 200
 
 @app.route('/tasks', methods=['GET'])
 def get_tasks():
-    """Récupérer toutes les tâches."""
     logger.info("Fetching all tasks")
     tasks = db_manager.get_all()
-    # Sérialisation des objets Task en JSON via Marshmallow
-    result = tasks_schema.dump(tasks)
-    return jsonify(result), 200
+    return jsonify(tasks_schema.dump(tasks)), 200
 
 @app.route('/tasks', methods=['POST'])
 def create_task():
-    """Créer une nouvelle tâche."""
     json_data = request.get_json()
     if not json_data:
-        logger.warning("Create task attempt with no data")
         return jsonify({"message": "No input data provided"}), 400
     
     try:
-        # Validation et création de l'objet Task
         task = task_schema.load(json_data)
         created_task = db_manager.create(task)
         logger.info(f"Task created: {created_task.id}")
@@ -78,29 +131,22 @@ def create_task():
 
 @app.route('/tasks/<string:task_id>', methods=['GET'])
 def get_task(task_id):
-    """Récupérer une tâche par son ID."""
     task = db_manager.get_by_id(task_id)
     if not task:
-        logger.warning(f"Task not found: {task_id}")
         return jsonify({"message": "Task not found"}), 404
-    
     return jsonify(task_schema.dump(task)), 200
 
 @app.route('/tasks/<string:task_id>', methods=['PUT'])
 def update_task(task_id):
-    """Mettre à jour une tâche."""
     json_data = request.get_json()
     if not json_data:
         return jsonify({"message": "No input data provided"}), 400
 
-    # Vérifier l'existence AVANT de valider pour éviter des logs inutiles
     existing_task = db_manager.get_by_id(task_id)
     if not existing_task:
-        logger.warning(f"Update attempt on non-existent task: {task_id}")
         return jsonify({"message": "Task not found"}), 404
 
     try:
-        # On valide partiel=True car on peut ne mettre à jour que le statut par exemple
         errors = task_schema.validate(json_data, partial=True)
         if errors:
             raise ValidationError(errors)
@@ -109,25 +155,20 @@ def update_task(task_id):
         logger.info(f"Task updated: {task_id}")
         return jsonify(task_schema.dump(updated_task)), 200
     except ValidationError as err:
-        logger.warning(f"Validation error: {err.messages}")
         return jsonify(err.messages), 422
 
 @app.route('/tasks/<string:task_id>', methods=['DELETE'])
 def delete_task(task_id):
-    """Supprimer une tâche."""
     success = db_manager.delete(task_id)
     if not success:
-        logger.warning(f"Delete attempt on non-existent task: {task_id}")
         return jsonify({"message": "Task not found"}), 404
     
     logger.info(f"Task deleted: {task_id}")
     return jsonify({"message": "Task deleted successfully"}), 200
 
-
 if __name__ == '__main__':
-    # Configuration du port et de l'hôte
     port = int(os.getenv('PORT', 5000))
     debug = os.getenv('FLASK_DEBUG', '0') == '1'
-    
     logger.info(f"Starting application on port {port}")
     app.run(host='0.0.0.0', port=port, debug=debug)
+
