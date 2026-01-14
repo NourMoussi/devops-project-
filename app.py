@@ -2,7 +2,8 @@ import logging
 import datetime
 import os
 import time
-from flask import Flask, jsonify, request, g
+import uuid
+from flask import Flask, jsonify, request, g, has_request_context
 from flask_cors import CORS
 from pythonjsonlogger import jsonlogger
 from dotenv import load_dotenv
@@ -15,14 +16,31 @@ from models.task import db_manager, TaskSchema
 # Charger les variables d'environnement
 load_dotenv()
 
-# Configuration du Logging
+# -------------------------------------------------------------------
+# Configuration du Logging avec REQUEST ID
+# -------------------------------------------------------------------
+class RequestIdFilter(logging.Filter):
+    """
+    Filtre qui injecte le request_id du contexte Flask dans les logs.
+    Si hors contexte (ex: démarrage), injecte 'system'.
+    """
+    def filter(self, record):
+        if has_request_context():
+            record.request_id = getattr(g, 'request_id', 'unknown')
+        else:
+            record.request_id = 'system'
+        return True
+
 logHandler = logging.StreamHandler()
+# On ajoute %(request_id)s au format
 formatter = jsonlogger.JsonFormatter(
-    fmt='%(asctime)s %(levelname)s %(name)s %(message)s'
+    fmt='%(asctime)s %(levelname)s %(name)s %(request_id)s %(message)s'
 )
 logHandler.setFormatter(formatter)
+
 logger = logging.getLogger()
 logger.addHandler(logHandler)
+logger.addFilter(RequestIdFilter()) # Ajout du filtre
 logger.setLevel(os.getenv('LOG_LEVEL', 'INFO'))
 
 # Initialisation de l'application
@@ -38,51 +56,38 @@ tasks_schema = TaskSchema(many=True)
 # -------------------------------------------------------------------
 # M É T R I Q U E S   P R O M E T H E U S
 # -------------------------------------------------------------------
+# ... (Métriques inchangées)
+HTTP_REQUESTS_TOTAL = Counter('http_requests_total', 'Total HTTP Requests', ['method', 'endpoint', 'status'])
+HTTP_REQUEST_DURATION_SECONDS = Histogram('http_request_duration_seconds', 'HTTP Request Duration', ['method', 'endpoint'])
+APP_TASKS_TOTAL = Gauge('app_tasks_total', 'Total number of tasks in memory')
 
-# 1. Compteur de requêtes : suit le nombre total de requêtes par méthode/endpoint/code
-HTTP_REQUESTS_TOTAL = Counter(
-    'http_requests_total',
-    'Total HTTP Requests',
-    ['method', 'endpoint', 'status']
-)
-
-# 2. Histogramme de latence : mesure la durée des requêtes
-HTTP_REQUEST_DURATION_SECONDS = Histogram(
-    'http_request_duration_seconds',
-    'HTTP Request Duration',
-    ['method', 'endpoint']
-)
-
-# 3. Jauge métier : nombre de tâches actives en mémoire
-APP_TASKS_TOTAL = Gauge(
-    'app_tasks_total',
-    'Total number of tasks in memory'
-)
-
-# Middleware pour mesurer la durée des requêtes
+# -------------------------------------------------------------------
+# Middlewares (Tracing & Metrics)
+# -------------------------------------------------------------------
 @app.before_request
-def start_timer():
+def before_request():
+    # 1. Start Timer pour métriques
     g.start_time = time.time()
+    # 2. Generate Request ID pour tracing
+    # On accepte X-Request-ID entrant (pour tracing distribué) ou on en génère un
+    request_id = request.headers.get('X-Request-ID')
+    if not request_id:
+        request_id = str(uuid.uuid4())
+    g.request_id = request_id
 
 @app.after_request
-def record_metrics(response):
+def after_request(response):
+    # Ajout du Request ID dans les headers de réponse
+    response.headers['X-Request-ID'] = g.request_id
+    
     if request.endpoint == 'metrics':
         return response
         
     duration = time.time() - g.start_time
     endpoint = request.endpoint if request.endpoint else 'unknown'
     
-    # Enregistrement des métriques
-    HTTP_REQUEST_DURATION_SECONDS.labels(
-        method=request.method,
-        endpoint=endpoint
-    ).observe(duration)
-    
-    HTTP_REQUESTS_TOTAL.labels(
-        method=request.method,
-        endpoint=endpoint,
-        status=response.status_code
-    ).inc()
+    HTTP_REQUEST_DURATION_SECONDS.labels(method=request.method, endpoint=endpoint).observe(duration)
+    HTTP_REQUESTS_TOTAL.labels(method=request.method, endpoint=endpoint, status=response.status_code).inc()
     
     return response
 
