@@ -9,6 +9,7 @@ from pythonjsonlogger import jsonlogger
 from dotenv import load_dotenv
 from marshmallow import ValidationError
 from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
+from flask_swagger_ui import get_swaggerui_blueprint
 
 # Import du modèle et du gestionnaire de données
 from models.task import db_manager, TaskSchema
@@ -20,10 +21,6 @@ load_dotenv()
 # Configuration du Logging avec REQUEST ID
 # -------------------------------------------------------------------
 class RequestIdFilter(logging.Filter):
-    """
-    Filtre qui injecte le request_id du contexte Flask dans les logs.
-    Si hors contexte (ex: démarrage), injecte 'system'.
-    """
     def filter(self, record):
         if has_request_context():
             record.request_id = getattr(g, 'request_id', 'unknown')
@@ -32,7 +29,6 @@ class RequestIdFilter(logging.Filter):
         return True
 
 logHandler = logging.StreamHandler()
-# On ajoute %(request_id)s au format
 formatter = jsonlogger.JsonFormatter(
     fmt='%(asctime)s %(levelname)s %(name)s %(request_id)s %(message)s'
 )
@@ -40,12 +36,23 @@ logHandler.setFormatter(formatter)
 
 logger = logging.getLogger()
 logger.addHandler(logHandler)
-logger.addFilter(RequestIdFilter()) # Ajout du filtre
+logger.addFilter(RequestIdFilter())
 logger.setLevel(os.getenv('LOG_LEVEL', 'INFO'))
 
 # Initialisation de l'application
 app = Flask(__name__)
 CORS(app)
+
+# Configuration Swagger UI
+SWAGGER_URL = '/swagger'
+API_URL = '/static/swagger.json'
+swaggerui_blueprint = get_swaggerui_blueprint(
+    SWAGGER_URL,
+    API_URL,
+    config={'app_name': "Task Manager API"}
+)
+app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
+
 
 APP_VERSION = os.getenv('APP_VERSION', '1.0.0')
 

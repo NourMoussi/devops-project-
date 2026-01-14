@@ -51,6 +51,9 @@ python-dateutil==2.8.2
 # UUID generation (built-in, but explicit for clarity)
 # uuid - standard library
 
+# -------------------- Documentation --------------------
+flask-swagger-ui==4.11.1
+
 # -------------------- Production Server --------------------
 # WSGI server for production
 gunicorn==21.2.0
