@@ -30,7 +30,7 @@ class TaskSchema(Schema):
     id = fields.Str(dump_only=True)  # L'ID est généré par le serveur, pas par l'utilisateur
     title = fields.Str(required=True, validate=validate.Length(min=3, max=100))
     description = fields.Str(required=True, validate=validate.Length(max=500))
-    status = fields.Str(validate=validate.OneOf(["TODO", "IN_PROGRESS", "DONE"]), missing="TODO")
+    status = fields.Str(validate=validate.OneOf(["TODO", "IN_PROGRESS", "DONE"]), load_default="TODO")
     created_at = fields.Str(dump_only=True)
 
     @post_load
