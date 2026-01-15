@@ -23,7 +23,11 @@ RUN groupadd -r appuser && useradd -r -g appuser appuser
 WORKDIR /app
 
 # Install curl for healthcheck
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+# Install curl for healthcheck and upgrade pip/setuptools to fix vulnerabilities
+RUN apt-get update && \
+    apt-get install -y curl && \
+    pip install --no-cache-dir --upgrade pip setuptools && \
+    rm -rf /var/lib/apt/lists/*
 
 # Copy virtual environment from builder stage
 COPY --from=builder /opt/venv /opt/venv
