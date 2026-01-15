@@ -25,6 +25,7 @@ L'Issue #12 a été complétée avec succès. Les contrôles de sécurité autom
 ### 4. Documentation
 - [x] Création de `docs/security-report.md`
 - [x] Mise à jour du workflow `.github/workflows/ci-cd.yml`
+- [x] Correctif Sécurité Docker: Suppression totale de `setuptools` de l'image finale pour éliminer les vulnérabilités vendored (`jaraco.context`).
 
 ## 🛡️ Architecture DevSecOps
 
