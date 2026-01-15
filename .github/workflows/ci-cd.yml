@@ -55,16 +55,49 @@ jobs:
           fail_ci_if_error: false
         continue-on-error: true
 
-  # Job 2: Build et Push Docker Image
-  build-and-push:
-    name: 🐳 Build & Push Docker Image
+  # Job 1.5: Security Checks (DevSecOps)
+  security:
+    name: 🛡️ Security Checks
     runs-on: ubuntu-latest
     needs: test
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: 📦 Install Security Tools
+        run: |
+          pip install bandit pip-audit
+
+      - name: 🕵️ Run Bandit (SAST)
+        run: |
+          bandit -r . -x ./venv,./test_api.py,./test_tracing.py
+        continue-on-error: false
+
+      - name: � Audit Dependencies
+        run: |
+          pip install -r requirements.txt
+          pip-audit
+
+  # Job 2: Build & Push Docker Image (Updated with Trivy)
+  build-and-push:
+    name: 🐳 Build, Scan & Push
+    runs-on: ubuntu-latest
+    needs: [test, security]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
+      
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
       
       - name: 🔑 Log in to Docker Hub
         uses: docker/login-action@v3
@@ -72,7 +105,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       
-      - name: 🏷️ Extract metadata (tags, labels)
+      - name: 🏷️ Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
@@ -80,16 +113,38 @@ jobs:
           tags: |
             type=raw,value=latest
             type=sha,prefix={{branch}}-
-            type=ref,event=branch
       
-      - name: 🏗️ Build and push Docker image
+      # 1. Build and Load for Scanning
+      - name: 🏗️ Build image for scanning
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile
+          load: true
+          tags: ${{ env.DOCKER_IMAGE }}:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # 2. Run Trivy Vulnerability Scanner
+      - name: 🛡️ Run Trivy Vulnerability Scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.DOCKER_IMAGE }}:test'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      # 3. Build and Push (using cache)
+      - name: 🚀 Build and push final image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
       
       - name: 📦 Image digest
         run: echo "Image pushed successfully! 🎉"
