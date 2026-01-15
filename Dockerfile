@@ -26,7 +26,7 @@ WORKDIR /app
 # Install curl for healthcheck and upgrade pip/setuptools to fix vulnerabilities
 RUN apt-get update && \
     apt-get install -y curl && \
-    pip uninstall -y setuptools && \
+    rm -rf /usr/local/lib/python3.9/site-packages/setuptools* && \
     pip install --no-cache-dir --upgrade pip setuptools && \
     rm -rf /var/lib/apt/lists/*
 
