@@ -1,26 +1,25 @@
-import requests
+import pytest
 import uuid
+from app import app
 
-URL = "http://localhost:5000/health"
+@pytest.fixture
+def client():
+    app.config['TESTING'] = True
+    with app.test_client() as client:
+        yield client
 
-print("--- 1. Test génération automatique ID ---")
-r = requests.get(URL)
-req_id = r.headers.get("X-Request-ID")
-print(f"Status: {r.status_code}")
-print(f"X-Request-ID: {req_id}")
+def test_request_id_generation(client):
+    """Test that a request ID is automatically generated if missing."""
+    response = client.get('/health')
+    assert response.status_code == 200
+    assert 'X-Request-ID' in response.headers
+    assert len(response.headers['X-Request-ID']) > 0
 
-if not req_id:
-    raise Exception("Header X-Request-ID manquant !")
-
-print("\n--- 2. Test propagation ID existant ---")
-custom_id = str(uuid.uuid4())
-headers = {"X-Request-ID": custom_id}
-r = requests.get(URL, headers=headers)
-returned_id = r.headers.get("X-Request-ID")
-print(f"Sent ID: {custom_id}")
-print(f"Received ID: {returned_id}")
-
-if custom_id != returned_id:
-    raise Exception("L'ID envoyé n'a pas été propagé !")
-
-print("\n✅ TRACING SUCCESS")
+def test_request_id_propagation(client):
+    """Test that an existing X-Request-ID is propagated."""
+    custom_id = str(uuid.uuid4())
+    headers = {'X-Request-ID': custom_id}
+    
+    response = client.get('/health', headers=headers)
+    assert response.status_code == 200
+    assert response.headers['X-Request-ID'] == custom_id

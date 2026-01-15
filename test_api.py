@@ -1,53 +1,66 @@
-import requests
+import pytest
 import json
-import sys
+from app import app
 
-BASE_URL = "http://localhost:5000"
+@pytest.fixture
+def client():
+    app.config['TESTING'] = True
+    with app.test_client() as client:
+        # Establish an application context before running the tests.
+        with app.app_context():
+            yield client
 
-def test_api():
-    print("--- 1. GET /tasks (Initial) ---")
-    r = requests.get(f"{BASE_URL}/tasks")
-    print(f"Status: {r.status_code}")
-    print(f"Count: {len(r.json())}")
-    
-    print("\n--- 2. POST /tasks ---")
+def test_health_check(client):
+    """Test the health check endpoint."""
+    response = client.get('/health')
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data['status'] == 'healthy'
+    assert 'version' in data
+
+def test_get_tasks_empty(client):
+    """Test getting tasks list (might be empty or not, depending on order)."""
+    response = client.get('/tasks')
+    assert response.status_code == 200
+    assert isinstance(response.get_json(), list)
+
+def test_create_task(client):
+    """Test creating a new task."""
     payload = {
-        "title": "Tâche API Test",
-        "description": "Créée via script python",
+        "title": "Unit Test Task",
+        "description": "Created by Pytest",
         "status": "TODO"
     }
-    r = requests.post(f"{BASE_URL}/tasks", json=payload)
-    print(f"Status: {r.status_code}")
-    if r.status_code == 201:
-        new_task = r.json()
-        print(f"Created ID: {new_task['id']}")
-        task_id = new_task['id']
-    else:
-        print(f"Error: {r.text}")
-        sys.exit(1)
+    response = client.post('/tasks', json=payload)
+    assert response.status_code == 201
+    data = response.get_json()
+    assert data['title'] == "Unit Test Task"
+    assert 'id' in data
+    return data['id']
 
-    print(f"\n--- 3. GET /tasks/{task_id} ---")
-    r = requests.get(f"{BASE_URL}/tasks/{task_id}")
-    print(f"Status: {r.status_code}")
-    print(f"Title: {r.json()['title']}")
+def test_task_lifecycle(client):
+    """Test full lifecycle: Create -> Get -> Update -> Delete -> Verify."""
+    # 1. Create
+    payload = {"title": "Lifecycle Task", "status": "TODO"}
+    rv = client.post('/tasks', json=payload)
+    assert rv.status_code == 201
+    task_id = rv.get_json()['id']
 
-    print(f"\n--- 4. PUT /tasks/{task_id} ---")
-    update_payload = {"status": "IN_PROGRESS", "title": "Tâche API Updated"}
-    r = requests.put(f"{BASE_URL}/tasks/{task_id}", json=update_payload)
-    print(f"Status: {r.status_code}")
-    print(f"New Status: {r.json()['status']}")
+    # 2. Get
+    rv = client.get(f'/tasks/{task_id}')
+    assert rv.status_code == 200
+    assert rv.get_json()['title'] == "Lifecycle Task"
 
-    print(f"\n--- 5. DELETE /tasks/{task_id} ---")
-    r = requests.delete(f"{BASE_URL}/tasks/{task_id}")
-    print(f"Status: {r.status_code}")
+    # 3. Update
+    update_payload = {"status": "DONE"}
+    rv = client.put(f'/tasks/{task_id}', json=update_payload)
+    assert rv.status_code == 200
+    assert rv.get_json()['status'] == "DONE"
 
-    print("\n--- 6. GET /tasks/{task_id} (Verify Delete) ---")
-    r = requests.get(f"{BASE_URL}/tasks/{task_id}")
-    print(f"Status: {r.status_code} (Expected 404)")
+    # 4. Delete
+    rv = client.delete(f'/tasks/{task_id}')
+    assert rv.status_code == 200
 
-if __name__ == "__main__":
-    try:
-        test_api()
-        print("\n✅ GLOBAL TEST SUCCESS")
-    except Exception as e:
-        print(f"\n❌ TEST FAILED: {e}")
+    # 5. Verify Delete
+    rv = client.get(f'/tasks/{task_id}')
+    assert rv.status_code == 404
