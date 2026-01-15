@@ -109,7 +109,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE }}
+          images: nourmoussi/${{ env.DOCKER_IMAGE }}
           tags: |
             type=raw,value=latest
             type=sha,prefix={{branch}}-
