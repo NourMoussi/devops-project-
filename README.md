@@ -3,6 +3,7 @@
 ![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)
 ![Flask](https://img.shields.io/badge/Flask-3.0+-green.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
+![CI/CD](https://github.com/NourMoussi/devops-project-/workflows/CI/CD%20Pipeline/badge.svg)
 ![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen.svg)
 
 ## 📖 Description
