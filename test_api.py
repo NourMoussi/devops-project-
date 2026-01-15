@@ -36,12 +36,15 @@ def test_create_task(client):
     data = response.get_json()
     assert data['title'] == "Unit Test Task"
     assert 'id' in data
-    return data['id']
 
 def test_task_lifecycle(client):
     """Test full lifecycle: Create -> Get -> Update -> Delete -> Verify."""
     # 1. Create
-    payload = {"title": "Lifecycle Task", "status": "TODO"}
+    payload = {
+        "title": "Lifecycle Task", 
+        "description": "Task for lifecycle test",
+        "status": "TODO"
+    }
     rv = client.post('/tasks', json=payload)
     assert rv.status_code == 201
     task_id = rv.get_json()['id']

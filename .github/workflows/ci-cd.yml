@@ -46,7 +46,7 @@ jobs:
       
       - name: 🧪 Run tests with pytest
         run: |
-          pytest test_api.py -v --cov=. --cov-report=term-missing --cov-report=xml
+          pytest -v --cov=. --cov-report=term-missing --cov-report=xml
       
       - name: 📊 Upload coverage reports
         uses: codecov/codecov-action@v4
