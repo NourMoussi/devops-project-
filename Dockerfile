@@ -11,7 +11,8 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip setuptools && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r requirements.txt && \
+    pip uninstall -y setuptools
 
 # Stage 2: Run
 FROM python:3.9-slim
@@ -26,9 +27,8 @@ WORKDIR /app
 # Install curl for healthcheck and upgrade pip/setuptools to fix vulnerabilities
 RUN apt-get update && \
     apt-get install -y curl && \
-    rm -rf /usr/local/lib/python3.9/site-packages/setuptools* && \
-    pip install --no-cache-dir --upgrade pip setuptools && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* && \
+    rm -rf /usr/local/lib/python3.9/site-packages/setuptools*
 
 # Copy virtual environment from builder stage
 COPY --from=builder /opt/venv /opt/venv
