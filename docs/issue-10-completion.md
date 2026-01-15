@@ -65,6 +65,44 @@ Ou accédez directement via `http://<MINIKUBE-IP>:30000`.
   - Limits : 500m CPU / 256Mi RAM
 - **Probes** : HTTP GET sur `/health`
 
+## ✅ Vérification du Déploiement
+
+Le déploiement a été testé et vérifié avec succès sur Minikube :
+
+### État du Cluster
+```bash
+$ kubectl get pods
+NAME                                READY   STATUS    RESTARTS   AGE
+task-manager-api-6bdb68f5b6-b...    1/1     Running   0          2m
+task-manager-api-6bdb68f5b6-x...    1/1     Running   0          2m
+
+$ kubectl get svc
+NAME                       TYPE       CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
+task-manager-api-service   NodePort   10.96.xxx.xxx   <none>        80:30000/TCP   2m
+```
+
+### Tests de l'API
+- ✅ **Health Check** : `GET /health` → `{"status":"healthy","version":"1.0.0"}`
+- ✅ **Liste des tâches** : `GET /tasks` → Retourne les tâches avec succès
+- ✅ **Métriques Prometheus** : `GET /metrics` → Métriques disponibles
+
+### Commandes Utilisées
+```bash
+# Démarrer Minikube
+minikube start --driver=docker
+
+# Charger l'image dans Minikube
+docker tag task-manager-api:latest devops-project-api:latest
+minikube image load devops-project-api:latest
+
+# Déployer l'application
+kubectl apply -f k8s/
+
+# Accéder au service
+minikube service task-manager-api-service --url
+# → http://127.0.0.1:49281
+```
+
 ## 📌 Prochaines Étapes
 
 **Issue #11** : Pipeline CI/CD GitHub Actions.
@@ -72,5 +110,5 @@ Automatiser le build, les tests et la création de l'image Docker via GitHub Act
 
 ---
 
-**Status** : ✅ COMPLÉTÉ
+**Status** : ✅ COMPLÉTÉ et VÉRIFIÉ
 **Date** : 2026-01-15
