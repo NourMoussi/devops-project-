@@ -207,11 +207,9 @@ jobs:
       
       - name: 🔐 Configure kubectl
         run: |
-          # The KUBECONFIG secret must be a base64 encoded kubeconfig file
-          echo "${{ secrets.KUBECONFIG }}" | base64 -d > kubeconfig.yaml
+          # Use echo -n to avoid extra newline that can break base64 decoding
+          echo -n "${{ secrets.KUBECONFIG }}" | base64 -d > kubeconfig.yaml
           export KUBECONFIG=kubeconfig.yaml
-          
-          # Change namespace if needed, here we use default
           kubectl config set-context --current --namespace=default
       
       - name: 🚀 Deploy Manifests
