@@ -190,12 +190,17 @@ jobs:
         with:
           node_image: kindest/node:v1.29.2
       
-      - name: 🚀 Deploy Manifests
+      - name: � Load Image into KinD
         run: |
-          # Apply application manifests
+          kind load docker-image nourmoussi/${{ env.DOCKER_IMAGE }}:latest --name chart-testing
+      
+      - name: �🚀 Deploy Manifests
+        run: |
+          # Use sed to update the image name to the one just pushed/loaded
+          sed -i 's|image: devops-project-api:latest|image: nourmoussi/${{ env.DOCKER_IMAGE }}:latest|g' k8s/deployment.yaml
+          
           kubectl apply -f k8s/deployment.yaml
           kubectl apply -f k8s/service.yaml
-          # Apply observability manifests
           kubectl apply -f k8s/prometheus.yaml
           kubectl apply -f k8s/grafana.yaml
       
