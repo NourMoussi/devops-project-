@@ -149,34 +149,19 @@ jobs:
       - name: 📦 Image digest
         run: echo "Image pushed successfully! 🎉"
 
-  # Job 3: DAST Scan with OWASP ZAP
-  dast:
-    name: �️ DAST (OWASP ZAP)
-    runs-on: ubuntu-latest
-    needs: build-and-push
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-
-      # Utiliser l'image construite précédemment
-      - name: 🐳 Pull Docker Image
+      # DAST Scan with OWASP ZAP (Merged into Build to use local image)
+      - name: � Run Application for DAST
         run: |
-          docker pull nourmoussi/${{ env.DOCKER_IMAGE }}:latest
+          docker run -d -p 5000:5000 --name task-manager ${{ env.DOCKER_IMAGE }}:test
+          sleep 10
       
-      - name: � Run Application
-        run: |
-          docker run -d -p 5000:5000 --name task-manager nourmoussi/${{ env.DOCKER_IMAGE }}:latest
-          sleep 10 # Wait for app to initialize
-
       - name: 🧟 Run ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.11.0
         with:
           target: 'http://localhost:5000'
           rules_file_name: '.zap/rules.tsv'
           cmd_options: '-a'
-          fail_action: false # Ne pas échouer le build pour l'instant (mode observation)
+          fail_action: false
         continue-on-error: true
       
       - name: 📊 Upload ZAP Report
@@ -193,7 +178,7 @@ jobs:
   deploy:
     name: 🚀 Direct Deploy to K8s
     runs-on: ubuntu-latest
-    needs: [build-and-push, dast]
+    needs: build-and-push
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     
     steps:
