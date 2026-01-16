@@ -188,3 +188,44 @@ jobs:
             report_json.json
             report_md.md
         continue-on-error: true
+
+  # Job 4: Direct Deployment (Simplified)
+  deploy:
+    name: 🚀 Direct Deploy to K8s
+    runs-on: ubuntu-latest
+    needs: [build-and-push, dast]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: ⚙️ Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+      
+      - name: 🔐 Configure kubectl
+        run: |
+          # The KUBECONFIG secret must be a base64 encoded kubeconfig file
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > kubeconfig.yaml
+          export KUBECONFIG=kubeconfig.yaml
+          
+          # Change namespace if needed, here we use default
+          kubectl config set-context --current --namespace=default
+      
+      - name: 🚀 Deploy Manifests
+        run: |
+          export KUBECONFIG=kubeconfig.yaml
+          # Apply application manifests
+          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/service.yaml
+          # Apply observability manifests
+          kubectl apply -f k8s/prometheus.yaml
+          kubectl apply -f k8s/grafana.yaml
+      
+      - name: ✅ Verify deployment
+        run: |
+          export KUBECONFIG=kubeconfig.yaml
+          kubectl rollout status deployment/task-manager-api
+          kubectl get pods
