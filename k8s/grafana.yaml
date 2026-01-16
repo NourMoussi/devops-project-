@@ -1,3 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+data:
+  task-manager-dashboard.json: |
+    {
+      "title": "Task Manager API Dashboard",
+      "panels": [
+        {
+          "title": "Requests Rate",
+          "type": "timeseries",
+          "targets": [{"expr": "sum(rate(http_requests_total[5m])) by (method, endpoint, status)"}]
+        },
+        {
+          "title": "Total Tasks",
+          "type": "stat",
+          "targets": [{"expr": "app_tasks_total"}]
+        }
+      ]
+    }
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -22,6 +44,14 @@ spec:
         env:
         - name: GF_SECURITY_ADMIN_PASSWORD
           value: "admin"
+        volumeMounts:
+        - name: dashboard-volume
+          mountPath: /var/lib/grafana/dashboards/task-manager-dashboard.json
+          subPath: task-manager-dashboard.json
+      volumes:
+      - name: dashboard-volume
+        configMap:
+          name: grafana-dashboards
 ---
 apiVersion: v1
 kind: Service
