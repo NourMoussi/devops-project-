@@ -207,10 +207,12 @@ jobs:
       
       - name: 🔐 Configure kubectl
         run: |
-          # Strip any potential whitespace from the secret and decode
-          echo "${{ secrets.KUBECONFIG }}" | tr -d '[:space:]' | base64 -d > kubeconfig.yaml
+          # Use Python to avoid shell-specific base64/newline issues
+          python3 -c "import base64, os; data = os.environ['KUBECONFIG_B64'].replace(' ', '').replace('\n', '').replace('\r', ''); open('kubeconfig.yaml', 'wb').write(base64.b64decode(data))"
           export KUBECONFIG=kubeconfig.yaml
           kubectl config set-context --current --namespace=default
+        env:
+          KUBECONFIG_B64: ${{ secrets.KUBECONFIG }}
       
       - name: 🚀 Deploy Manifests
         run: |
