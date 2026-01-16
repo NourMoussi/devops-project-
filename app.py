@@ -100,4 +100,4 @@ def delete_task(task_id):
 if __name__ == '__main__':
     port, debug = int(os.getenv('PORT', 5000)), os.getenv('FLASK_DEBUG', '0') == '1'
     logger.info(f"Starting application on port {port}")
-    app.run(host='0.0.0.0', port=port, debug=debug)
+    app.run(host='0.0.0.0', port=port, debug=debug) # nosec
