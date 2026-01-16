@@ -192,12 +192,12 @@ jobs:
       
       - name: � Load Image into KinD
         run: |
-          kind load docker-image nourmoussi/${{ env.DOCKER_IMAGE }}:latest --name chart-testing
+          kind load docker-image ${{ env.DOCKER_IMAGE }}:test --name chart-testing
       
       - name: �🚀 Deploy Manifests
         run: |
           # Use sed to update the image name to the one just pushed/loaded
-          sed -i 's|image: devops-project-api:latest|image: nourmoussi/${{ env.DOCKER_IMAGE }}:latest|g' k8s/deployment.yaml
+          sed -i 's|image: devops-project-api:latest|image: ${{ env.DOCKER_IMAGE }}:test|g' k8s/deployment.yaml
           
           kubectl apply -f k8s/deployment.yaml
           kubectl apply -f k8s/service.yaml
