@@ -207,8 +207,8 @@ jobs:
       
       - name: 🔐 Configure kubectl
         run: |
-          # Use echo -n to avoid extra newline that can break base64 decoding
-          echo -n "${{ secrets.KUBECONFIG }}" | base64 -d > kubeconfig.yaml
+          # Strip any potential whitespace from the secret and decode
+          echo "${{ secrets.KUBECONFIG }}" | tr -d '[:space:]' | base64 -d > kubeconfig.yaml
           export KUBECONFIG=kubeconfig.yaml
           kubectl config set-context --current --namespace=default
       
