@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: api
-        image: devops-project-api:latest
+        image: devops-project-api:test
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 5000
