@@ -137,19 +137,6 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
       # 3. Build and Push (using cache)
-      - name: 🚀 Build and push final image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-      
-      - name: 📦 Image digest
-        run: echo "Image pushed successfully! 🎉"
-
       # DAST Scan with OWASP ZAP (Merged into Build to use local image)
       - name:  Run Application for DAST
         run: |
@@ -174,6 +161,27 @@ jobs:
             report_json.json
             report_md.md
         continue-on-error: true
+
+      - name: 🛑 Stop and remove container
+        if: always()
+        run: |
+          docker stop task-manager
+          docker rm task-manager
+
+      # 3. Build and Push (using cache) - MOVED TO END
+      # Only runs if previous steps passed (DAST/SAST)
+      - name: 🚀 Build and push final image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      - name: 📦 Image digest
+        run: echo "Image pushed successfully! 🎉"
 
   # Job 4: Test Deployment (using Minikube for local testing)
   deploy:
