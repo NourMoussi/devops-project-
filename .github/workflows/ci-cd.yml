@@ -12,7 +12,7 @@ on:
 
 env:
   PYTHON_VERSION: '3.11'
-  DOCKER_IMAGE: devops-project-api
+  DOCKER_IMAGE: todo
 
 jobs:
   # Job 1: Linting et Tests
@@ -80,7 +80,7 @@ jobs:
           bandit -r . -x ./venv,./test_api.py,./test_tracing.py
         continue-on-error: false
 
-      - name: � Audit Dependencies
+      - name:  Audit Dependencies
         run: |
           pip install -r requirements.txt
           pip-audit
@@ -102,16 +102,17 @@ jobs:
       - name: 🔑 Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: nourmoussi
+          username: moussinour
           password: ${{ secrets.DOCKER_PASSWORD }}
       
       - name: 🏷️ Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: nourmoussi/${{ env.DOCKER_IMAGE }}
+          images: moussinour/${{ env.DOCKER_IMAGE }}
           tags: |
             type=raw,value=latest
+            type=raw,value=tagname
             type=sha,prefix={{branch}}-
       
       # 1. Build and Load for Scanning
@@ -150,7 +151,7 @@ jobs:
         run: echo "Image pushed successfully! 🎉"
 
       # DAST Scan with OWASP ZAP (Merged into Build to use local image)
-      - name: � Run Application for DAST
+      - name:  Run Application for DAST
         run: |
           docker run -d -p 5000:5000 --name task-manager ${{ env.DOCKER_IMAGE }}:test
           sleep 10
@@ -200,7 +201,7 @@ jobs:
       - name: 🚀 Deploy Manifests
         run: |
           # Use sed to update the image name to the one just pushed/loaded
-          sed -i 's|image: devops-project-api:latest|image: ${{ env.DOCKER_IMAGE }}:test|g' k8s/deployment.yaml
+          sed -i 's|image: devops-project-api:.*|image: ${{ env.DOCKER_IMAGE }}:test|g' k8s/deployment.yaml
           
           # Reduce replicas to 1 for CI environment to save resources
           sed -i 's|replicas: 2|replicas: 1|g' k8s/deployment.yaml
