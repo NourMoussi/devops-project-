@@ -3,229 +3,117 @@
 ![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)
 ![Flask](https://img.shields.io/badge/Flask-3.0+-green.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
-![CI/CD](https://github.com/NourMoussi/devops-project-/workflows/CI/CD%20Pipeline/badge.svg)
-![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen.svg)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-Enabled-blue.svg)
+![Prometheus](https://img.shields.io/badge/Prometheus-Monitoring-red.svg)
 
 ## 📖 Description
 
 **Task Manager API** est un projet DevOps académique complet démontrant les meilleures pratiques de développement, déploiement et observabilité d'une application moderne.
 
-Ce projet implémente une API REST simple de gestion de tâches (TODO list) avec un focus sur :
-- 🚀 **CI/CD automatisé** avec GitHub Actions
-- 🐳 **Containerisation** Docker optimisée
-- ☸️ **Orchestration** Kubernetes (minikube/kind)
-- 📊 **Observabilité** complète (métriques, logs, tracing)
-- 🔒 **Sécurité** avec scans SAST et DAST
-- 📚 **Documentation** professionnelle
+Ce projet implémente une API REST complète de gestion de tâches (TODO list) avec un focus majeur sur l'ingénierie DevOps :
+- 🚀 **CI/CD automatisé** avec GitHub Actions (Tests, Lint, Build, Security Scan)
+- 🐳 **Containerisation** Docker multi-stage optimisée
+- ☸️ **Orchestration** Kubernetes avec déploiements, services et sondes de santé
+- 📊 **Observabilité avancée** : Métriques Prometheus, Tableaux de bord Grafana, Logs structurés JSON et Tracing de requêtes
+- 🔒 **Sécurité** : Scans Bandit (SAST), Trivy (Docker) et gestion des politiques de tirage d'images
 
-## 🎯 Objectifs du Projet
+## 🎯 Fonctionnalités implémentées
 
-Ce projet a été conçu pour démontrer :
+1. **API REST CRUD** : Gestion complète des tâches (Create, Read, Update, Delete).
+2. **Documentation Swagger** : Interface interactive disponible sur `/swagger`.
+3. **Tracing** : Identification unique des requêtes via header `X-Request-ID`.
+4. **Monitoring** : Métriques personnalisées (nombre de tâches, taux de requêtes, latence).
+5. **Infrastructure as Code** : Manifestes Kubernetes complets pour l'application et la stack de monitoring.
 
-1. **Développement Backend** : API REST en Python/Flask (< 150 lignes)
-2. **Workflow Git** : Issues, Pull Requests, Code Reviews
-3. **Pipeline CI/CD** : Tests, Build, Scan, Deploy automatisés
-4. **Containerisation** : Docker multi-stage, optimisation d'images
-5. **Kubernetes** : Déploiement, scaling, health checks
-6. **Observabilité** : Métriques Prometheus, logs structurés JSON
-7. **Sécurité** : Analyse statique (SAST) et dynamique (DAST)
+## 🏗️ Architecture du Projet
 
-## 🏗️ Architecture
-
-```
-┌─────────────┐
-│   Client    │
-└──────┬──────┘
-       │
-       ▼
-┌─────────────────────────────┐
-│   Task Manager API (Flask)  │
-│  ┌─────────────────────────┐│
-│  │  REST Endpoints         ││
-│  │  - GET/POST/PUT/DELETE  ││
-│  └─────────────────────────┘│
-│  ┌─────────────────────────┐│
-│  │  Observability          ││
-│  │  - Metrics (/metrics)   ││
-│  │  - Structured Logs      ││
-│  │  - Request Tracing      ││
-│  └─────────────────────────┘│
-│  ┌─────────────────────────┐│
-│  │  In-Memory Storage      ││
-│  └─────────────────────────┘│
-└─────────────────────────────┘
-       │
-       ▼
-┌─────────────────────────────┐
-│   Monitoring Stack          │
-│   - Prometheus              │
-│   - Grafana (optionnel)     │
-└─────────────────────────────┘
+```mermaid
+graph TD
+    User([Utilisateur]) -->|HTTP| Service[Service K8s: NodePort 30000]
+    Service --> Pods[Pods API Flask]
+    Pods -->|Metrics| Prom[Prometheus]
+    Prom -->|Dashboards| Grafana[Grafana]
+    
+    subgraph "Kubernetes Cluster"
+    Pods
+    Prom
+    Grafana
+    end
 ```
 
-## 🚀 Quick Start
+## 🚀 Guide de Démarrage Rapide
 
-### Prérequis
-
-- **Python 3.9+** ([Télécharger](https://www.python.org/downloads/))
-- **Git** ([Télécharger](https://git-scm.com/downloads))
-- **Docker & Docker Compose** (optionnel, pour containerisation)
-- **kubectl** (optionnel, pour Kubernetes)
-- **minikube ou kind** (optionnel, pour déploiement local K8s)
-
-### 🔧 Installation Automatique (Recommandé)
-
-#### Windows (PowerShell)
-
-```powershell
-# Cloner le repository
-git clone https://github.com/NourMoussi/devops-project-.git
-cd devops-project-
-
-# Exécuter le script de setup
-.\setup.ps1
-```
-
-**Note** : Si vous obtenez une erreur d'exécution de script, exécutez d'abord :
-```powershell
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-```
-
-#### Linux/Mac (Bash)
+### 🔧 Installation et Lancement Local
 
 ```bash
-# Cloner le repository
+# 1. Cloner et configurer l'environnement
 git clone https://github.com/NourMoussi/devops-project-.git
 cd devops-project-
-
-# Rendre le script exécutable
-chmod +x setup.sh
-
-# Exécuter le script de setup
-./setup.sh
-```
-
-### 📦 Installation Manuelle
-
-Si vous préférez installer manuellement :
-
-```bash
-# 1. Cloner le repository
-git clone https://github.com/NourMoussi/devops-project-.git
-cd devops-project-
-
-# 2. Créer un environnement virtuel
 python -m venv venv
+.\venv\Scripts\Activate.ps1  # Windows
+source venv/bin/activate     # Linux/Mac
 
-# 3. Activer l'environnement virtuel
-# Windows (PowerShell)
-.\venv\Scripts\Activate.ps1
-# Windows (CMD)
-venv\Scripts\activate.bat
-# Linux/Mac
-source venv/bin/activate
-
-# 4. Mettre à jour pip
-python -m pip install --upgrade pip
-
-# 5. Installer les dépendances
+# 2. Installer les dépendances
 pip install -r requirements.txt
-```
 
-### ⚙️ Configuration
-
-```bash
-# Copier le fichier d'environnement exemple
-cp .env.example .env
-
-# Éditer .env selon vos besoins (optionnel pour développement local)
-```
-
-### 🚀 Lancer l'Application
-
-```bash
-# Activer l'environnement virtuel (si pas déjà fait)
-# Windows
-.\venv\Scripts\Activate.ps1
-# Linux/Mac
-source venv/bin/activate
-
-# Lancer l'application (sera disponible dans Issue #3)
+# 3. Lancer l'API
 python app.py
 ```
+L'API est accessible sur `http://localhost:5000` et le Swagger sur `http://localhost:5000/swagger`.
 
-L'API sera accessible sur `http://localhost:5000`
+### ☸️ Déploiement sur Kubernetes (Minikube/Kind)
 
-### ✅ Vérifier l'Installation
+```powershell
+# Déployer l'API
+kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/service.yaml
 
-```bash
-# Vérifier la version de Python
-python --version
-
-# Vérifier les packages installés
-pip list
-
-# Lancer les tests (quand disponibles)
-pytest tests/
+# Déployer la stack de Monitoring
+kubectl apply -f k8s/prometheus.yaml
+kubectl apply -f k8s/grafana.yaml
 ```
 
-## 📚 Documentation
+## 📊 Observabilité et Monitoring
 
-- [Guide de Contribution](CONTRIBUTING.md)
-- [Documentation API](docs/api.md) *(à venir)*
-- [Guide de Déploiement](docs/deployment.md) *(à venir)*
-- [Rapport de Sécurité](docs/security-report.md) *(à venir)*
+Le projet inclut une stack de monitoring pré-configurée.
 
-## 🛠️ Stack Technique
+### 1. Accès aux Interfaces
 
-- **Backend** : Python 3.9+, Flask 3.0+
-- **Observabilité** : prometheus-client, structlog
-- **Containerisation** : Docker, Docker Compose
-- **Orchestration** : Kubernetes (minikube/kind)
-- **CI/CD** : GitHub Actions
-- **Sécurité** : Bandit (SAST), OWASP ZAP (DAST), Trivy (scan Docker)
-- **Tests** : pytest, coverage
+| Outil | Commande de redirection | URL |
+|-------|-------------------------|-----|
+| **API (Direct)** | `minikube service task-manager-api-service --url` | `http://<minikube-ip>:30000` |
+| **Prometheus** | `kubectl port-forward service/prometheus 9091:9090` | [http://localhost:9091](http://localhost:9091) |
+| **Grafana** | `kubectl port-forward service/grafana 3000:3000` | [http://localhost:3000](http://localhost:3000) |
+
+### 2. Identifiants Grafana
+- **Utilisateur** : `admin`
+- **Mot de passe** : `admin`
+
+Le tableau de bord **"Task Manager API Dashboard"** est automatiquement importé et connecté à Prometheus.
 
 ## 📝 API Endpoints
 
-*(Documentation complète à venir)*
-
 | Méthode | Endpoint | Description |
 |---------|----------|-------------|
-| GET | `/health` | Health check de l'application |
-| GET | `/metrics` | Métriques Prometheus |
+| GET | `/health` | État de santé de l'API |
+| GET | `/metrics` | Métriques brutes pour Prometheus |
 | GET | `/tasks` | Liste toutes les tâches |
-| POST | `/tasks` | Créer une nouvelle tâche |
-| GET | `/tasks/<id>` | Récupérer une tâche spécifique |
-| PUT | `/tasks/<id>` | Mettre à jour une tâche |
+| POST | `/tasks` | Ajouter une tâche (JSON: `title`, `description`) |
+| GET | `/tasks/<id>` | Détails d'une tâche spécifique |
+| PUT | `/tasks/<id>` | Modifier une tâche |
 | DELETE | `/tasks/<id>` | Supprimer une tâche |
 
-## 🤝 Contribution
+## 🛠️ Stack Technique
 
-Les contributions sont les bienvenues ! Veuillez consulter [CONTRIBUTING.md](CONTRIBUTING.md) pour les détails.
-
-### Workflow de Contribution
-
-1. Créer une issue décrivant la fonctionnalité/bug
-2. Créer une branche depuis `main` : `git checkout -b feature/ma-fonctionnalite`
-3. Commiter les changements : `git commit -m "feat: ajout de ma fonctionnalité"`
-4. Pousser la branche : `git push origin feature/ma-fonctionnalite`
-5. Ouvrir une Pull Request
+- **Langage** : Python 3.9+
+- **Framework** : Flask, Marshmallow (validation)
+- **Monitoring** : Prometheus, Grafana
+- **DevOps** : Docker, Kubernetes, GitHub Actions
+- **Qualité** : Pytest, Bandit, Trivy
 
 ## 📄 Licence
 
 Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de détails.
 
-## 👨‍💻 Auteur
-
-**Nour Moussi**
-- GitHub: [@NourMoussi](https://github.com/NourMoussi)
-- Projet: [devops-project-](https://github.com/NourMoussi/devops-project-)
-
-## 🙏 Remerciements
-
-Projet réalisé dans le cadre d'un cours DevOps académique démontrant les meilleures pratiques de l'industrie.
-
 ---
-
-⭐ **N'hésitez pas à mettre une étoile si ce projet vous a été utile !**
+**Auteur : Nour Moussi**

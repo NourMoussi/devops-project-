@@ -9,7 +9,7 @@ data:
     scrape_configs:
       - job_name: 'task-manager-api'
         static_configs:
-          - targets: ['task-manager-api:5000']
+          - targets: ['task-manager-api-service:80']
 ---
 apiVersion: apps/v1
 kind: Deployment

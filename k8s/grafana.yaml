@@ -1,24 +1,121 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
+  name: grafana-datasources
+data:
+  prometheus.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        url: http://prometheus:9090
+        isDefault: True
+        access: proxy
+        editable: true
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
   name: grafana-dashboards
 data:
   task-manager-dashboard.json: |
     {
-      "title": "Task Manager API Dashboard",
+      "annotations": {
+        "list": [
+          {
+            "builtIn": 1,
+            "datasource": {
+              "type": "grafana",
+              "uid": "-- Grafana --"
+            },
+            "enable": true,
+            "hide": true,
+            "iconColor": "rgba(0, 211, 255, 1)",
+            "name": "Annotations & Alerts",
+            "type": "dashboard"
+          }
+        ]
+      },
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 0,
+      "links": [],
+      "liveNow": false,
       "panels": [
         {
           "title": "Requests Rate",
           "type": "timeseries",
-          "targets": [{"expr": "sum(rate(http_requests_total[5m])) by (method, endpoint, status)"}]
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(http_requests_total[5m])) by (method, endpoint, status)",
+              "refId": "A"
+            }
+          ],
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 0
+          }
         },
         {
           "title": "Total Tasks",
           "type": "stat",
-          "targets": [{"expr": "app_tasks_total"}]
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "targets": [
+            {
+              "expr": "app_tasks_total",
+              "refId": "A"
+            }
+          ],
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 0
+          }
         }
-      ]
+      ],
+      "schemaVersion": 36,
+      "style": "dark",
+      "tags": [],
+      "templating": {
+        "list": []
+      },
+      "time": {
+        "from": "now-6h",
+        "to": "now"
+      },
+      "timepicker": {},
+      "timezone": "",
+      "title": "Task Manager API Dashboard",
+      "version": 0,
+      "weekStart": ""
     }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-provider
+data:
+  provider.yaml: |
+    apiVersion: 1
+    providers:
+      - name: 'default'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -45,10 +142,22 @@ spec:
         - name: GF_SECURITY_ADMIN_PASSWORD
           value: "admin"
         volumeMounts:
+        - name: datasource-volume
+          mountPath: /etc/grafana/provisioning/datasources/prometheus.yaml
+          subPath: prometheus.yaml
+        - name: dashboard-provider-volume
+          mountPath: /etc/grafana/provisioning/dashboards/provider.yaml
+          subPath: provider.yaml
         - name: dashboard-volume
           mountPath: /var/lib/grafana/dashboards/task-manager-dashboard.json
           subPath: task-manager-dashboard.json
       volumes:
+      - name: datasource-volume
+        configMap:
+          name: grafana-datasources
+      - name: dashboard-provider-volume
+        configMap:
+          name: grafana-dashboard-provider
       - name: dashboard-volume
         configMap:
           name: grafana-dashboards
