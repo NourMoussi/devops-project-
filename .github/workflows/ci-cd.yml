@@ -112,8 +112,6 @@ jobs:
           images: moussinour/${{ env.DOCKER_IMAGE }}
           tags: |
             type=raw,value=latest
-            type=raw,value=tagname
-            type=sha,prefix={{branch}}-
       
       # 1. Build and Load for Scanning
       - name: 🏗️ Build image for scanning
