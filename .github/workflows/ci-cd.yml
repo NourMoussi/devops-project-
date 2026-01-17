@@ -202,6 +202,9 @@ jobs:
           # Use sed to update the image name to the one just pushed/loaded
           sed -i 's|image: devops-project-api:latest|image: ${{ env.DOCKER_IMAGE }}:test|g' k8s/deployment.yaml
           
+          # Reduce replicas to 1 for CI environment to save resources
+          sed -i 's|replicas: 2|replicas: 1|g' k8s/deployment.yaml
+          
           kubectl apply -f k8s/deployment.yaml
           kubectl apply -f k8s/service.yaml
           kubectl apply -f k8s/prometheus.yaml
@@ -213,8 +216,14 @@ jobs:
           kubectl get pods
           kubectl get services
       
-      - name: 🔍 Check Minikube Status
+      - name: 🔍 Check Minikube Status (Debug)
         if: always()
         run: |
+          echo "=== Minikube Status ==="
           minikube status
+          echo "=== All Resources ==="
           kubectl get all -A
+          echo "=== Pod Descriptions (Events) ==="
+          kubectl describe pods
+          echo "=== Cluster Events ==="
+          kubectl get events --sort-by='.lastTimestamp'
